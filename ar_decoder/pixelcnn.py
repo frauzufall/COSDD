@@ -55,7 +55,7 @@ class PixelCNN(nn.Module):
         )
 
         c_out = n_gaussians * colour_channels * 3
-        self.out_conv = nn.Conv2d(
+        self.out_conv = nn.Conv3d(
             in_channels=n_filters, out_channels=c_out, kernel_size=1
         )
 

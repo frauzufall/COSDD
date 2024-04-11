@@ -17,14 +17,14 @@ class Shifted1DConvolution(nn.Module):
 
         shift = dilation * (kernel_size - 1)
 
-        self.pad = nn.ConstantPad2d((shift, 0, 0, 0), 0)
+        self.pad = nn.ConstantPad3d((0, 0, shift, 0, 0, 0), 0)
 
-        self.conv = nn.Conv2d(in_channels,
-                              out_channels, (1, kernel_size),
+        self.conv = nn.Conv3d(in_channels,
+                              out_channels, (1, kernel_size, 1),
                               dilation=dilation)
 
         if self.first:
-            kernel_mask = torch.ones((1, 1, 1, kernel_size))
+            kernel_mask = torch.ones((1, 1, 1, kernel_size, 1))
             kernel_mask[..., -1] = 0
             self.register_buffer("kernel_mask", kernel_mask)
 
@@ -51,9 +51,9 @@ class Block(nn.Module):
 
         self.in_conv = Shifted1DConvolution(in_channels, out_channels,
                                             kernel_size, dilation, first)
-        self.s_conv = nn.Conv2d(s_code_channels, out_channels, 1)
+        self.s_conv = nn.Conv3d(s_code_channels, out_channels, 1)
         self.act_fn = nn.ReLU()
-        self.out_conv = nn.Conv2d(out_channels, out_channels, 1)
+        self.out_conv = nn.Conv3d(out_channels, out_channels, 1)
 
         if out_channels == in_channels:
             self.do_skip = True

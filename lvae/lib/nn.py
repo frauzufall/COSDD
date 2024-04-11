@@ -45,7 +45,7 @@ class ResidualBlock(nn.Module):
         modules = []
         if block_type == 'cabcab':
             for i in range(2):
-                conv = nn.Conv2d(channels,
+                conv = nn.Conv3d(channels,
                                  channels,
                                  kernel[i],
                                  padding=pad[i],
@@ -53,14 +53,14 @@ class ResidualBlock(nn.Module):
                 modules.append(conv)
                 modules.append(nn.Mish())
                 if batchnorm:
-                    modules.append(nn.BatchNorm2d(channels))
+                    modules.append(nn.BatchNorm3d(channels))
 
         elif block_type == 'bacbac':
             for i in range(2):
                 if batchnorm:
-                    modules.append(nn.BatchNorm2d(channels))
+                    modules.append(nn.BatchNorm3d(channels))
                 modules.append(nn.Mish())
-                conv = nn.Conv2d(channels,
+                conv = nn.Conv3d(channels,
                                  channels,
                                  kernel[i],
                                  padding=pad[i],
@@ -87,7 +87,7 @@ class GateLayer2d(nn.Module):
         super().__init__()
         assert kernel_size % 2 == 1
         pad = kernel_size // 2
-        self.conv = nn.Conv2d(channels, 2 * channels, kernel_size, padding=pad)
+        self.conv = nn.Conv3d(channels, 2 * channels, kernel_size, padding=pad)
         self.nonlin = nn.Tanh()
 
     def forward(self, x):

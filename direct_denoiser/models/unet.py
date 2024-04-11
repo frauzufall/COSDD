@@ -64,7 +64,7 @@ class UNet(nn.Module):
 
         # First bottom-up layer: change num channels
         self.first_bottom_up = nn.Sequential(
-            nn.Conv2d(colour_channels,
+            nn.Conv3d(colour_channels,
                       n_filters,
                       5,
                       padding=2,
@@ -218,10 +218,10 @@ class UNet(nn.Module):
         dwnsc = self.overall_downscale_factor
 
         # Make size argument into (heigth, width)
-        if len(size) == 4:
+        if len(size) == 5:
             size = size[2:]
-        if len(size) != 2:
-            msg = ("input size must be either (N, C, H, W) or (H, W), but it "
+        if len(size) != 3:
+            msg = ("input size must be either (N, C, D, H, W) or (D, H, W), but it "
                    "has length {} (size={})".format(len(size), size))
             raise RuntimeError(msg)
 

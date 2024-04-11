@@ -16,7 +16,7 @@ class LadderVAE(nn.Module):
 
     Args:
         colour_channels (int): Number of input image channels.
-        img_shape (tuple): Shape of the input image (height, width).
+        img_shape (tuple): Shape of the input image (depth, height, width).
         s_code_channels (int): Number of channels in the returned latent code.
         z_dims (list, optional): List of dimensions for the latent variables z.
             If not provided, default value of [32] * 12 will be used.
@@ -84,7 +84,7 @@ class LadderVAE(nn.Module):
 
         # First bottom-up layer: change num channels
         self.first_bottom_up = nn.Sequential(
-            nn.Conv2d(colour_channels,
+            nn.Conv3d(colour_channels,
                       n_filters,
                       5,
                       padding=2,
@@ -163,6 +163,7 @@ class LadderVAE(nn.Module):
     def forward(self, x):
         # Pad x to have base 2 side lengths to make resampling steps simpler
         # Save size to crop back down later
+
         img_size = x.size()[2:]
         x_pad = self.pad_input(x)
 
@@ -176,7 +177,7 @@ class LadderVAE(nn.Module):
             # Calculate KL divergence
             kl_sums = [torch.sum(layer) for layer in kl]
             kl_loss = sum(kl_sums) / float(
-                x.shape[0] * x.shape[1] * x.shape[2] * x.shape[3])
+                x.shape[0] * x.shape[1] * x.shape[2] * x.shape[3] * x.shape[4])
         else:
             kl_loss = None
 
@@ -297,11 +298,11 @@ class LadderVAE(nn.Module):
         # Overall downscale factor from input to top layer (power of 2)
         dwnsc = self.overall_downscale_factor
 
-        # Make size argument into (heigth, width)
-        if len(size) == 4:
+        # Make size argument into (depth, heigth, width)
+        if len(size) == 5:
             size = size[2:]
-        if len(size) != 2:
-            msg = ("input size must be either (N, C, H, W) or (H, W), but it "
+        if len(size) != 3:
+            msg = ("input size must be either (N, C, D, H, W) or (D, H, W), but it "
                    "has length {} (size={})".format(len(size), size))
             raise RuntimeError(msg)
 
@@ -314,8 +315,9 @@ class LadderVAE(nn.Module):
         # TODO num channels depends on random variable we're using
         dwnsc = self.overall_downscale_factor
         sz = self.get_padded_size(self.img_shape)
-        h = sz[0] // dwnsc
-        w = sz[1] // dwnsc
+        d = sz[0] // dwnsc
+        h = sz[1] // dwnsc
+        w = sz[2] // dwnsc
         c = self.z_dims[-1] * 2  # mu and log-sigma
-        top_layer_shape = (n_imgs, c, h, w)
+        top_layer_shape = (n_imgs, c, d, h, w)
         return top_layer_shape

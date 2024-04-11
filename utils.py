@@ -3,29 +3,37 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 
 def autocorrelation(arrs, max_lag=25):
-    """ Compute the spatial autocorrelation of a list of arrays.
+    """Compute the spatial autocorrelation of a list of 3D arrays.
+
     Args:
-        arrs: list of arrays
-        max_lag: int, the maximum lag to compute the autocorrelation for
+        arrs: list of 3D arrays or a single 3D array
+        max_lag: int, the maximum lag to compute the autocorrelation for in all three dimensions
+
     Returns:
-        result: 2D tensor, the autocorrelation of the arrays
+        result: 3D tensor, the autocorrelation of the arrays across depth, height, and width
     """
     if not isinstance(arrs, list):
         arrs = [arrs]
-    covar = torch.zeros((max_lag, max_lag))
-    covar_denom = torch.zeros((max_lag, max_lag))
+
+    covar = torch.zeros((max_lag, max_lag, max_lag))
+    covar_denom = torch.zeros((max_lag, max_lag, max_lag))
     var = 0
     var_denom = 0
+
     for a in arrs:
         a = a - a.mean()
-        for i in range(max_lag):
-            for j in range(max_lag):
-                c = (a[..., :a.shape[-2]-i, :a.shape[-1]-j] * a[..., i:, j:]).sum()
-                n = a[..., :a.shape[-2]-i, :a.shape[-1]-j].numel()
-                covar[i, j] += c
-                covar_denom[i, j] += n
-        var += (a**2).sum()
+        for d in range(max_lag):  # Depth iteration
+            for i in range(max_lag):  # Height iteration
+                for j in range(max_lag):  # Width iteration
+                    valid_area = a[..., :a.shape[-3] - d, :a.shape[-2] - i, :a.shape[-1] - j]
+                    shifted_area = a[..., d:, i:, j:]
+                    c = (valid_area * shifted_area).sum()
+                    n = valid_area.numel()
+                    covar[d, i, j] += c
+                    covar_denom[d, i, j] += n
+        var += (a ** 2).sum()
         var_denom += a.numel()
+
     covar = covar / covar_denom
     var = var / var_denom
 

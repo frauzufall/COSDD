@@ -157,6 +157,8 @@ class DVLAE(pl.LightningModule):
             np.percentile(img, 99) - np.percentile(img, 1)
         )
         clamped_img = np.clip(normalised_img, 0, 1)
+        slice_idx = clamped_img.shape[1] // 2
+        clamped_img = clamped_img[:, slice_idx, :, :]
         self.trainer.logger.experiment.add_image(
             img_name, clamped_img, self.current_epoch
         )

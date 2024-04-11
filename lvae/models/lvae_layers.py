@@ -2,7 +2,7 @@ import torch
 from torch import nn
 
 from ..lib.nn import ResidualBlock
-from ..lib.stochastic import NormalStochasticBlock2d
+from ..lib.stochastic import NormalStochasticBlock3d
 
 
 class TopDownLayer(nn.Module):
@@ -74,8 +74,8 @@ class TopDownLayer(nn.Module):
                 ))
         self.deterministic_block = nn.Sequential(*block_list)
 
-        # Define stochastic block with 2d convolutions
-        self.stochastic = NormalStochasticBlock2d(
+        # Define stochastic block with 3d convolutions
+        self.stochastic = NormalStochasticBlock3d(
             c_in=n_filters,
             c_vars=z_dim,
             c_out=n_filters,
@@ -237,19 +237,19 @@ class ResBlockWithResampling(nn.Module):
         # Define first conv layer to change channels and/or up/downsample
         if resample:
             if mode == 'bottom-up':  # downsample
-                self.pre_conv = nn.Conv2d(c_in,
+                self.pre_conv = nn.Conv3d(c_in,
                                           inner_filters,
                                           kernel_size=3,
-                                          stride=2,
+                                          stride=(2,2,2),
                                           padding=1,
                                           padding_mode='replicate',
                                           groups=groups)
             elif mode == 'top-down':  # upsample
                 self.pre_conv = nn.Sequential(
                     nn.Upsample(scale_factor=2, mode='nearest'),
-                    nn.Conv2d(c_in, inner_filters, 1, groups=groups))
+                    nn.Conv3d(c_in, inner_filters, 1, groups=groups))
         elif c_in != inner_filters:
-            self.pre_conv = nn.Conv2d(c_in, inner_filters, 1, groups=groups)
+            self.pre_conv = nn.Conv3d(c_in, inner_filters, 1, groups=groups)
         else:
             self.pre_conv = None
 
@@ -265,7 +265,7 @@ class ResBlockWithResampling(nn.Module):
 
         # Define last conv layer to get correct num output channels
         if inner_filters != c_out:
-            self.post_conv = nn.Conv2d(inner_filters, c_out, 1, groups=groups)
+            self.post_conv = nn.Conv3d(inner_filters, c_out, 1, groups=groups)
         else:
             self.post_conv = None
 
@@ -314,10 +314,10 @@ class MergeLayer(nn.Module):
         assert len(channels) == 3
 
         if merge_type == 'linear':
-            self.layer = nn.Conv2d(channels[0] + channels[1], channels[2], 1)
+            self.layer = nn.Conv3d(channels[0] + channels[1], channels[2], 1)
         elif merge_type == 'residual':
             self.layer = nn.Sequential(
-                nn.Conv2d(channels[0] + channels[1], channels[2], 1, padding=0),
+                nn.Conv3d(channels[0] + channels[1], channels[2], 1, padding=0),
                 ResidualBlock(channels[2],
                               batchnorm=batchnorm,
                               block_type=res_block_type,
@@ -325,5 +325,8 @@ class MergeLayer(nn.Module):
             )
 
     def forward(self, x, y):
+        if x.shape[2:] != y.shape[2:]:
+            raise ValueError(f"Spatial dimensions do not match. x: {x.shape}, y: {y.shape}")
+
         x = torch.cat((x, y), dim=1)
         return self.layer(x)
